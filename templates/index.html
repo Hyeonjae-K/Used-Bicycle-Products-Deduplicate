@@ -1,8 +1,32 @@
 {% extends 'base.html' %}
 {% block content %}
 
-{% for product in products %}
-<div>{{ products.title }}</div>
-{% endfor %}
+<table class="table table-hover align-middle fst-normal">
+  <thead>
+    <tr>
+      <th scope="col">id</th>
+      <th scope="col">title</th>
+      <th scope="col">thumb</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for product in products %}
+    <tr onclick="window.open('{{ product.url }}', '_blank').focus()">
+      <th scope="row">{{ product.id }}</th>
+      <td>
+        <p class="fw-bold">{{ product.title }}</p>
+        <p>{{ product.author }} {{ product.create_date }}</p>
+      </td>
+      <td><img src="{{ product.src }}"></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<script>
+function openInNewTab(url) {
+  window.open(url, '_blank').focus();
+}
+</script>
 
 {% endblock %}
