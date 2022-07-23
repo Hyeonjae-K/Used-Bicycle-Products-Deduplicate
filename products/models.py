@@ -6,8 +6,8 @@ class Product(models.Model):
     author = models.CharField(max_length=50)
     src = models.URLField(null=True, blank=True)
     url = models.URLField()
-    update_date = models.DateField(auto_now=True)
-    create_date = models.DateField(auto_now_add=True)
+    update_date = models.DateTimeField(auto_now=True)
+    create_date = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f'{self.title}({self.author})'
