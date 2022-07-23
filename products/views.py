@@ -1,4 +1,5 @@
 from django.shortcuts import render
+from django.core.paginator import Paginator
 
 from apscheduler.schedulers.background import BackgroundScheduler
 
@@ -11,5 +12,8 @@ sched.start()
 
 
 def index(request):
+    page = request.GET.get('page', '1')
     products = Product.objects.order_by('-create_date')
-    return render(request, 'index.html', {'products': products})
+    paginator = Paginator(products, 15)
+    page_obj = paginator.get_page(page)
+    return render(request, 'index.html', {'products': page_obj})
