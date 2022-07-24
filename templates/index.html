@@ -38,8 +38,8 @@
     </li>
 
     {% for page_num in '012'|make_list %}
-    {% if products.number|add:-5|add:forloop.counter0 > 0 %}
-    <li class="page-item"><a class="page-link" href="?page={{ products.number|add:-5|add:forloop.counter0 }}">{{ products.number|add:-5|add:forloop.counter0 }}</a></li>
+    {% if products.number|add:-3|add:forloop.counter0 > 0 %}
+    <li class="page-item"><a class="page-link" href="?page={{ products.number|add:-3|add:forloop.counter0 }}">{{ products.number|add:-3|add:forloop.counter0 }}</a></li>
     {% endif %}
     {% endfor %}
     <li class="page-item active"><a class="page-link" href="#">{{ products.number }}</a></li>
