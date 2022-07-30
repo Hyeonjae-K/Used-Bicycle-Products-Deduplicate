@@ -7,7 +7,8 @@ from products.models import Product
 from crawlers import products
 
 sched = BackgroundScheduler()
-sched.add_job(products.crawl_jgnara, 'interval', seconds=5)
+sched.add_job(products.crawl_jg, 'interval', seconds=1)
+sched.add_job(products.crawl_bj, 'interval', seconds=1)
 sched.start()
 
 

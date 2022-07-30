@@ -25,12 +25,13 @@ SECRET_KEY = 'django-insecure--@(&a^v!%-s(h*w3q3h7#onazfk(ct5^840p+ukm9tic_07^yg
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
 
 INSTALLED_APPS = [
+    'django.contrib.humanize',
     'products.apps.ProductsConfig',
     'django.contrib.admin',
     'django.contrib.auth',
