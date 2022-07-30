@@ -13,29 +13,15 @@ options.add_argument('headless')
 options.add_argument('window-size=1920x1080')
 options.add_argument("disable-gpu")
 
-jg_driver = webdriver.Chrome('/usr/bin/chromedriver', chrome_options=options)
-bj_driver = webdriver.Chrome('/usr/bin/chromedriver', chrome_options=options)
+driver = webdriver.Chrome('/usr/bin/chromedriver', chrome_options=options)
 
 
-def crawl_jg():
-    global jg_driver
-    URL = 'https://m.cafe.naver.com/ca-fe/web/cafes/10050146/menus/432'
-    row_selector = '#ct > div > div:nth-child(4) > ul > li > div'
+def parse_jg(rows):
     title_selector = 'a.txt_area > strong'
     author_selector = 'a.txt_area > div > span.nick > span'
     src_selector = 'a.thumb_area > div > picture > source'
     url_selector = 'div > a'
-    try:
-        jg_driver.get(URL)
-    except WebDriverException:
-        jg_driver = webdriver.Chrome(
-            '/usr/bin/chromedriver', chrome_options=options)
-        jg_driver.get(URL)
-    WebDriverWait(jg_driver, 10).until(
-        EC.presence_of_element_located((By.CSS_SELECTOR, row_selector)))
 
-    rows = BeautifulSoup(jg_driver.page_source,
-                         'html.parser').select(row_selector)
     new_objects = []
     update_objects = []
     for row in rows:
@@ -62,27 +48,13 @@ def crawl_jg():
         Product.objects.bulk_update(update_objects, fields=['src', 'url'])
 
 
-def crawl_bj():
-    global bj_driver
-    URL = 'https://m.bunjang.co.kr/categories/700350500?&order=date'
-    card_selector = '#root > div > div > div:nth-child(4) > div > div:nth-child(3) > div > div > a'
+def parse_bj(cards):
     title_selector = 'div:nth-child(2) > div:nth-child(1)'
     url_prefix = 'https://m.bunjang.co.kr'
     src_selector = 'a > div > img'
     price_selector = 'a > div:nth-child(2) > div:nth-child(2) > div'
     location_selector = 'a > div:nth-child(3)'
 
-    try:
-        bj_driver.get(URL)
-    except WebDriverException:
-        bj_driver = webdriver.Chrome(
-            '/usr/bin/chromedriver', chrome_options=options)
-        bj_driver.get(URL)
-    WebDriverWait(bj_driver, 10).until(
-        EC.presence_of_element_located((By.CSS_SELECTOR, card_selector)))
-
-    cards = BeautifulSoup(bj_driver.page_source,
-                          'html.parser').select(card_selector)
     titles = [card.select_one(title_selector).text for card in cards]
     urls = [url_prefix + card.get('href')[:card.get('href').find('?')]
             for card in cards]
@@ -94,3 +66,39 @@ def crawl_bj():
     products = [Product(title=title, url=url, src=src, price=price, location=location) for title, url, src,
                 price, location in zip(titles, urls, srcs, prices, locations) if not Product.objects.filter(url=url)]
     Product.objects.bulk_create(products)
+
+
+def crawl():
+    global driver
+
+    # jg
+    jg_url = 'https://m.cafe.naver.com/ca-fe/web/cafes/10050146/menus/432'
+    jg_row_selector = '#ct > div > div:nth-child(4) > ul > li > div'
+    try:
+        driver.get(jg_url)
+    except WebDriverException:
+        driver = webdriver.Chrome(
+            '/usr/bin/chromedriver', chrome_options=options)
+        driver.get(jg_url)
+    WebDriverWait(driver, 10).until(
+        EC.presence_of_element_located((By.CSS_SELECTOR, jg_row_selector)))
+
+    jg_rows = BeautifulSoup(
+        driver.page_source, 'html.parser').select(jg_row_selector)
+    parse_jg(jg_rows)
+
+    # bj
+    bj_url = 'https://m.bunjang.co.kr/categories/700350500?&order=date'
+    bj_card_selector = '#root > div > div > div:nth-child(4) > div > div:nth-child(3) > div > div > a'
+    try:
+        driver.get(bj_url)
+    except WebDriverException:
+        driver = webdriver.Chrome(
+            '/usr/bin/chromedriver', chrome_options=options)
+        driver.get(bj_url)
+    WebDriverWait(driver, 10).until(
+        EC.presence_of_element_located((By.CSS_SELECTOR, bj_card_selector)))
+
+    cards = BeautifulSoup(driver.page_source,
+                          'html.parser').select(bj_card_selector)
+    parse_bj(cards)
