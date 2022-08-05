@@ -59,8 +59,8 @@ def parse_bj(cards):
     urls = [url_prefix + card.get('href')[:card.get('href').find('?')]
             for card in cards]
     srcs = [card.select_one(src_selector).get('src') for card in cards]
-    prices = [int(''.join(card.select_one(price_selector).text.split(',')))
-              for card in cards]
+    prices = [None if (price := card.select_one(price_selector).text)
+              == '연락요망' else int(''.join(price.split(','))) for card in cards]
     locations = [card.select_one(location_selector).text for card in cards]
 
     products = [Product(title=title, url=url, src=src, price=price, location=location) for title, url, src,
