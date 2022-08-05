@@ -1,14 +1,7 @@
 from django.shortcuts import render
 from django.core.paginator import Paginator
 
-from apscheduler.schedulers.background import BackgroundScheduler
-
 from products.models import Product
-from crawlers import products
-
-sched = BackgroundScheduler()
-sched.add_job(products.crawl, 'interval', seconds=3)
-sched.start()
 
 
 def index(request):

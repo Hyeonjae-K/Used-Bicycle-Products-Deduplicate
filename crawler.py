@@ -5,6 +5,14 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.common.exceptions import WebDriverException
 from selenium.webdriver.support import expected_conditions as EC
 
+import time
+from apscheduler.schedulers.background import BackgroundScheduler
+
+import os
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
+import django
+django.setup()
+
 from products.models import Product
 
 
@@ -102,3 +110,12 @@ def crawl():
     cards = BeautifulSoup(driver.page_source,
                           'html.parser').select(bj_card_selector)
     parse_bj(cards)
+
+
+if __name__ == '__main__':
+    sched = BackgroundScheduler()
+    sched.add_job(crawl, 'interval', seconds=3)
+    sched.start()
+
+    while True:
+        time.sleep(1)
