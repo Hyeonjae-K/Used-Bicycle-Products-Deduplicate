@@ -24,14 +24,13 @@ options.add_argument("disable-gpu")
 driver = webdriver.Chrome('/usr/bin/chromedriver', chrome_options=options)
 
 
-def parse_jg(rows):
+def parse_jg(rows, products):
     title_selector = 'a.txt_area > strong'
     author_selector = 'a.txt_area > div > span.nick > span'
     src_selector = 'a.thumb_area > div > picture > source'
     url_selector = 'div > a'
 
-    new_objects = []
-    update_objects = []
+    new_products = []
     for row in rows:
         if not row.text:
             continue
@@ -42,21 +41,13 @@ def parse_jg(rows):
         src = row.select_one(src_selector).get(
             'srcset') if row.select_one(src_selector) else None
 
-        if product := Product.objects.filter(title=title, author=author).first():
-            product.src = src
-            product.url = url
-            update_objects.append(product)
-        else:
-            new_objects.append(
-                Product(title=title, author=author, src=src, url=url))
-
-    if new_objects:
-        Product.objects.bulk_create(new_objects)
-    if update_objects:
-        Product.objects.bulk_update(update_objects, fields=['src', 'url'])
+        if not products.filter(title=title, author=author):
+            new_products.append(Product(title=title, author=author, src=src, url=url))
+    
+    return new_products
 
 
-def parse_bj(cards):
+def parse_bj(cards, products):
     title_selector = 'div:nth-child(2) > div:nth-child(1)'
     url_prefix = 'https://m.bunjang.co.kr'
     src_selector = 'a > div > img'
@@ -71,13 +62,16 @@ def parse_bj(cards):
               == '연락요망' else int(''.join(price.split(','))) for card in cards]
     locations = [card.select_one(location_selector).text for card in cards]
 
-    products = [Product(title=title, url=url, src=src, price=price, location=location) for title, url, src,
-                price, location in zip(titles, urls, srcs, prices, locations) if not Product.objects.filter(url=url)]
-    Product.objects.bulk_create(products)
+    new_products = [Product(title=title, url=url, src=src, price=price, location=location) for title, url, src,
+                price, location in zip(titles, urls, srcs, prices, locations) if not products.filter(url=url)]
+    
+    return new_products
 
 
 def crawl():
     global driver
+    products = Product.objects.all()
+    new_products = []
 
     # jg
     jg_url = 'https://m.cafe.naver.com/ca-fe/web/cafes/10050146/menus/432'
@@ -93,7 +87,7 @@ def crawl():
 
     jg_rows = BeautifulSoup(
         driver.page_source, 'html.parser').select(jg_row_selector)
-    parse_jg(jg_rows)
+    new_products.extend(parse_jg(jg_rows, products))
 
     # bj
     bj_url = 'https://m.bunjang.co.kr/categories/700350500?&order=date'
@@ -109,7 +103,9 @@ def crawl():
 
     cards = BeautifulSoup(driver.page_source,
                           'html.parser').select(bj_card_selector)
-    parse_bj(cards)
+    new_products.extend(parse_bj(cards, products))
+
+    Product.objects.bulk_create(new_products)
 
 
 if __name__ == '__main__':
@@ -118,4 +114,4 @@ if __name__ == '__main__':
     sched.start()
 
     while True:
-        time.sleep(1)
+        time.sleep(10)
