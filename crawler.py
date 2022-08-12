@@ -22,9 +22,9 @@ options.add_argument('window-size=1920x1080')
 options.add_argument("disable-gpu")
 
 driver = webdriver.Chrome('/usr/bin/chromedriver', chrome_options=options)
+products = Product.objects.all()
 
-
-def parse_jg(rows, products):
+def parse_jg(rows):
     title_selector = 'a.txt_area > strong'
     author_selector = 'a.txt_area > div > span.nick > span'
     src_selector = 'a.thumb_area > div > picture > source'
@@ -47,7 +47,7 @@ def parse_jg(rows, products):
     return new_products
 
 
-def parse_bj(cards, products):
+def parse_bj(cards):
     title_selector = 'div:nth-child(2) > div:nth-child(1)'
     url_prefix = 'https://m.bunjang.co.kr'
     src_selector = 'a > div > img'
@@ -70,7 +70,6 @@ def parse_bj(cards, products):
 
 def crawl():
     global driver
-    products = Product.objects.all()
     new_products = []
 
     # jg
@@ -87,7 +86,7 @@ def crawl():
 
     jg_rows = BeautifulSoup(
         driver.page_source, 'html.parser').select(jg_row_selector)
-    new_products.extend(parse_jg(jg_rows, products))
+    new_products.extend(parse_jg(jg_rows))
 
     # bj
     bj_url = 'https://m.bunjang.co.kr/categories/700350500?&order=date'
@@ -103,7 +102,7 @@ def crawl():
 
     cards = BeautifulSoup(driver.page_source,
                           'html.parser').select(bj_card_selector)
-    new_products.extend(parse_bj(cards, products))
+    new_products.extend(parse_bj(cards))
 
     Product.objects.bulk_create(new_products)
 
