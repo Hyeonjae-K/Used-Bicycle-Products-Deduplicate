@@ -1,11 +1,5 @@
-from bs4 import BeautifulSoup
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.common.exceptions import WebDriverException
-from selenium.webdriver.support import expected_conditions as EC
-
 import time
+import requests
 from apscheduler.schedulers.background import BackgroundScheduler
 
 import os
@@ -15,101 +9,65 @@ django.setup()
 
 from products.models import Product
 
-
-options = webdriver.ChromeOptions()
-options.add_argument('headless')
-options.add_argument('window-size=1920x1080')
-options.add_argument("disable-gpu")
-
-driver = webdriver.Chrome('/usr/bin/chromedriver', chrome_options=options)
 products = Product.objects.all()
 
-def parse_jg(rows):
-    title_selector = 'a.txt_area > strong'
-    author_selector = 'a.txt_area > div > span.nick > span'
-    src_selector = 'a.thumb_area > div > picture > source'
-    url_selector = 'div > a'
 
+def parse_jg(data):
+    url_prefix = 'https://m.cafe.naver.com/ca-fe/web/cafes/10050146/articles/%d'
     new_products = []
-    for row in rows:
-        if not row.text:
-            continue
 
-        title = row.select_one(title_selector).text
-        author = row.select_one(author_selector).text
-        url = row.select_one(url_selector).get('href')
-        src = row.select_one(src_selector).get(
-            'srcset') if row.select_one(src_selector) else None
+    for json in data:
+        if json['type'] != 'ARTICLE':
+            continue
+        item = json['item']
+        title = item['subject']
+        author = item['writerNickname']
+        url = url_prefix % item['articleId']
+        src = item['representImage'] if 'representImage' in item.keys() else None
 
         if not products.filter(title=title, author=author):
-            new_products.append(Product(title=title, author=author, src=src, url=url))
-    
+            new_products.append(
+                Product(title=title, author=author, src=src, url=url, market='중나'))
+
     return new_products
 
 
-def parse_bj(cards):
-    title_selector = 'div:nth-child(2) > div:nth-child(1)'
-    url_prefix = 'https://m.bunjang.co.kr'
-    src_selector = 'a > div > img'
-    price_selector = 'a > div:nth-child(2) > div:nth-child(2) > div'
-    location_selector = 'a > div:nth-child(3)'
+def parse_bj(data):
+    url_prefix = 'https://m.bunjang.co.kr/products/%s'
+    new_products = []
 
-    titles = [card.select_one(title_selector).text for card in cards]
-    urls = [url_prefix + card.get('href')[:card.get('href').find('?')]
-            for card in cards]
-    srcs = [card.select_one(src_selector).get('src') for card in cards]
-    prices = [None if (price := card.select_one(price_selector).text)
-              == '연락요망' else int(''.join(price.split(','))) for card in cards]
-    locations = [card.select_one(location_selector).text for card in cards]
+    for item in data:
+        title = item['name']
+        price = int(item['price']) if item['price'] != '연락요망' else 0
+        url = url_prefix % item['pid']
+        src = item['product_image']
 
-    new_products = [Product(title=title, url=url, src=src, price=price, location=location) for title, url, src,
-                price, location in zip(titles, urls, srcs, prices, locations) if not products.filter(url=url)]
-    
+        if not products.filter(url=url):
+            new_products.append(
+                Product(title=title, price=price, url=url, src=src, market='번장'))
+
     return new_products
 
 
 def crawl():
-    global driver
     new_products = []
 
     # jg
-    jg_url = 'https://m.cafe.naver.com/ca-fe/web/cafes/10050146/menus/432'
-    jg_row_selector = '#ct > div > div:nth-child(4) > ul > li > div'
-    try:
-        driver.get(jg_url)
-    except WebDriverException:
-        driver = webdriver.Chrome(
-            '/usr/bin/chromedriver', chrome_options=options)
-        driver.get(jg_url)
-    WebDriverWait(driver, 10).until(
-        EC.presence_of_element_located((By.CSS_SELECTOR, jg_row_selector)))
-
-    jg_rows = BeautifulSoup(
-        driver.page_source, 'html.parser').select(jg_row_selector)
-    new_products.extend(parse_jg(jg_rows))
+    jg_url = 'https://apis.naver.com/cafe-web/cafe2/ArticleList.json?search.clubid=10050146&search.queryType=lastArticle&search.menuid=432&search.page=1&search.perPage=50&ad=true&uuid=a04329ff-ffe2-4292-9bd6-45c98d9cc0e4&adUnit=MW_CAFE_ARTICLE_LIST_RS'
+    data = requests.get(jg_url).json()['message']['result']['articleList']
+    new_products.extend(parse_jg(data))
 
     # bj
-    bj_url = 'https://m.bunjang.co.kr/categories/700350500?&order=date'
-    bj_card_selector = '#root > div > div > div:nth-child(4) > div > div:nth-child(3) > div > div > a'
-    try:
-        driver.get(bj_url)
-    except WebDriverException:
-        driver = webdriver.Chrome(
-            '/usr/bin/chromedriver', chrome_options=options)
-        driver.get(bj_url)
-    WebDriverWait(driver, 10).until(
-        EC.presence_of_element_located((By.CSS_SELECTOR, bj_card_selector)))
-
-    cards = BeautifulSoup(driver.page_source,
-                          'html.parser').select(bj_card_selector)
-    new_products.extend(parse_bj(cards))
+    bj_url = 'https://api.bunjang.co.kr/api/1/find_v2.json?f_category_id=700350500&page=0&order=date&req_ref=category&request_id=2022814161912&stat_device=w&n=100&version=4'
+    data = requests.get(bj_url).json()['list']
+    new_products.extend(parse_bj(data))
 
     Product.objects.bulk_create(new_products)
 
 
 if __name__ == '__main__':
     sched = BackgroundScheduler()
-    sched.add_job(crawl, 'interval', seconds=3)
+    sched.add_job(crawl, 'interval', seconds=1)
     sched.start()
 
     while True:
