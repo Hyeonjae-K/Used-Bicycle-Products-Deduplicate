@@ -22,12 +22,13 @@ def parse_jg(data):
         item = json['item']
         title = item['subject']
         author = item['writerNickname']
+        price = item['cost']
         url = url_prefix % item['articleId']
         src = item['representImage'] if 'representImage' in item.keys() else None
 
         if not products.filter(title=title, author=author):
             new_products.append(
-                Product(title=title, author=author, src=src, url=url, market='중나'))
+                Product(title=title, author=author, price=price, src=src, url=url, market='중나'))
 
     return new_products
 
