@@ -15,13 +15,15 @@
     <tr onclick="window.open('{{ product.url }}', '_blank').focus()">
       <th scope="row">{{ product.id }}</th>
       <td>
-        <p class="fw-bold">{{ product.title }}</p>
+        <p class="fw-bold">
+          {% if product.market == '중나' %}
+          <span class="badge text-bg-success">{{ product.market }}</span>
+          {% else %}
+          <span class="badge text-bg-danger">{{ product.market }}</span>
+          {% endif %}
+          {{ product.title }}</p>
         <p class="mb-0">
-        {% if product.author %}
-        {{ product.author }}
-        {% else %}
-        {{ product.price|intcomma }}원 ({{ product.location }})
-        {% endif %}
+          {{ product.price|intcomma }}원
         <br/>{{ product.create_date|date:"Y/m/d H:i" }}</p>
       </td>
       <td><img src="{{ product.src }}" style="width: 100px; height: 100px;"></td>
