@@ -1,6 +1,5 @@
 import time
 import requests
-from apscheduler.schedulers.background import BackgroundScheduler
 
 import os
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
@@ -67,9 +66,10 @@ def crawl():
 
 
 if __name__ == '__main__':
-    sched = BackgroundScheduler()
-    sched.add_job(crawl, 'interval', seconds=1)
-    sched.start()
-
     while True:
-        time.sleep(10)
+        try:
+            crawl()
+        except Exception as e:
+            print(e)
+
+        time.sleep(3)
