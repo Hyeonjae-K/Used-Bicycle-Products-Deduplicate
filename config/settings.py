@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/4.0/ref/settings/
 """
 
 from pathlib import Path
+import logging
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -127,3 +128,52 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/4.0/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+# Logging Settings
+
+class IPAddressFilter(logging.Filter):
+
+    def filter(self, record):
+        if hasattr(record, 'request'):
+            x_forwarded_for = record.request.META.get('HTTP_X_FORWARDED_FOR')
+            if x_forwarded_for:
+                record.ip = x_forwarded_for.split(',')[0]
+            else:
+                record.ip = record.request.META.get('REMOTE_ADDR')
+        return True
+
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'request_formatter': {
+            'format': '%(asctime)s  - %(name)s - %(ip)s - %(levelname)s -  %(message)s',
+            'datefmt': '%Y-%m-%d %H:%M:%S'
+        },
+    },
+    'handlers': {
+        'request': {
+            'level': 'WARNING',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'formatter': 'request_formatter',
+            'filename': 'logs/mysite.log',
+            'maxBytes': 1024*1024*5,
+            'backupCount': 5
+        }
+    },
+    'filters': {
+        'add_ip_address': {
+            # You can move IPAddressFilter class from settings.py to another location (e.g., apps.other.filters.IPAddressFilter)
+            '()': 'config.settings.IPAddressFilter'
+        }
+    },
+    'loggers': {
+        'django.request': {
+            'level': 'WARNING',
+            'filters': ['add_ip_address'],
+            'handlers': ['request']
+        },
+    },
+}
