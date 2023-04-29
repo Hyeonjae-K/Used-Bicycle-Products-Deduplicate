@@ -1,0 +1,5 @@
+{% if product.category.store == '중나' %}
+<span class="badge text-bg-success">{{ product.category.store }}</span>
+{% elif product.category.store == '번장' %}
+<span class="badge text-bg-danger">{{ product.category.store }}</span>
+{% endif %}
