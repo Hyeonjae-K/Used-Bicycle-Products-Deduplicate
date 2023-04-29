@@ -10,6 +10,7 @@ class Category(models.Model):
     store = models.CharField(max_length=2,  choices=STORE_CHOICES)
     name = models.CharField(max_length=25)
     url = models.URLField()
+    created_at = models.DateTimeField(auto_now=True)
 
 
 class Product(models.Model):
