@@ -18,6 +18,6 @@ class Product(models.Model):
     price = models.IntegerField()
     image = models.URLField()
     url = models.URLField()
-    author = models.CharField(max_length=15)
+    author = models.CharField(max_length=15, null=True)
     category = models.ForeignKey(Category, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now=True)
