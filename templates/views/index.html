@@ -16,7 +16,10 @@
     {% for product in products %}
     <tr onclick="window.open('{{ product.url }}', '_blank').focus()">
       <th scope="row">{{ product.id }}</th>
-      <td>{% include 'views/badge.html' %} {{ product.name }}</td>
+      <td>
+        {% include 'views/badge.html' %} {{ product.name }}
+        <small class="text-body-secondary">{{ product.created_at|date:"H:i:s" }}</small>
+      </td>
       </td>
       <td>{{ product.price | intcomma }} 원</td>
       <td><img width="100px" height="100px" src="{{ product.image }}"></td>
